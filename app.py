@@ -72,7 +72,21 @@ async def predict(request: Request, file: UploadFile = File(...)):
 
         img = Image.open(io.BytesIO(contents)).convert('RGB')
 
-        img_np = np.array(img)
+        original_size = img.size
+
+        target_size = (320, 320)
+
+        img_resized = img.copy()
+        img_resized.thumbnail(target_size, Image.Resampling.LANCZOS)
+
+        new_img = Image.new('RGB', target_size, (255, 255, 255))
+
+        img_resized_width, img_resized_height = img_resized.size
+        left = (target_size[0] - img_resized_width) // 2
+        top = (target_size[1] - img_resized_height) // 2
+        new_img.paste(img_resized, (left, top))
+
+        img_np = np.array(new_img)
 
         uploads_dir = "static/uploads/image"
         result_dir = "static/results/image"
@@ -98,15 +112,28 @@ async def predict(request: Request, file: UploadFile = File(...)):
         class_counts = {}
         total_count = 0
 
+        scale_x = original_size[0] / target_size[0]
+        scale_y = original_size[1] / target_size[1]
+
         if r.boxes is not None:
             for box in r.boxes:
                 cls_id = int(box.cls[0])
                 conf = float(box.conf[0])
+
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
+
+                x1_scaled = int((x1 - left) * scale_x)
+                y1_scaled = int((y1 - top) * scale_y)
+                x2_scaled = int((x2 - left) * scale_x)
+                y2_scaled = int((y2 - top) * scale_y)
+
+                x1_scaled = max(0, x1_scaled)
+                y1_scaled = max(0, y1_scaled)
+                x2_scaled = min(original_size[0], x2_scaled)
+                y2_scaled = min(original_size[1], y2_scaled)
 
                 class_name = classes.get(cls_id, str(cls_id))
 
-                # Подсчитываем количество для каждого класса
                 class_counts[class_name] = class_counts.get(class_name, 0) + 1
                 total_count += 1
 
@@ -114,16 +141,17 @@ async def predict(request: Request, file: UploadFile = File(...)):
                     "class_id": cls_id,
                     "class_name": class_name,
                     "confidence": round(conf * 100, 2),
-                    "bbox": [x1, y1, x2, y2]
+                    "bbox": [x1_scaled, y1_scaled, x2_scaled, y2_scaled]
                 })
 
-        annotated_img = r.plot()
-        Image.fromarray(annotated_img).save(result_path)
+        annotated_img_original = img.copy()
 
-        # Форматируем вывод для лучшего отображения
+        annotated_img_resized = r.plot()
+
+        Image.fromarray(annotated_img_resized).save(result_path)
+
         formatted_counts = {}
         for class_name, count in class_counts.items():
-            # Создаем правильную форму слова для русского языка
             if count % 10 == 1 and count % 100 != 11:
                 formatted_counts[class_name] = f"{count} обнаружен"
             elif count % 10 in [2, 3, 4] and count % 100 not in [12, 13, 14]:
@@ -137,7 +165,9 @@ async def predict(request: Request, file: UploadFile = File(...)):
             "class_counts": formatted_counts,
             "filename": file.filename,
             "total_count": total_count,
-            "detections": detections  # Оставляем для возможного использования в будущем
+            "detections": detections,
+            "original_size": f"{original_size[0]}x{original_size[1]}",
+            "processed_size": f"{target_size[0]}x{target_size[1]}"
         })
 
     except Exception as e:
@@ -147,6 +177,7 @@ async def predict(request: Request, file: UploadFile = File(...)):
             "request": request,
             "error": f"Ошибка обработки изображения: {str(e)}"
         })
+
 
 if __name__ == "__main__":
     import uvicorn
