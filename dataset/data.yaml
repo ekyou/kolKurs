@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 3
+names: ['BigCar', 'Car', 'Person']
+
+roboflow:
+  workspace: eksuper
+  project: person-and-car-vc9nr
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/eksuper/person-and-car-vc9nr/dataset/2
