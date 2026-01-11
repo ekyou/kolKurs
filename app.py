@@ -95,15 +95,24 @@ async def predict(request: Request, file: UploadFile = File(...)):
         r = results[0]
 
         detections = []
+        class_counts = {}
+        total_count = 0
+
         if r.boxes is not None:
             for box in r.boxes:
                 cls_id = int(box.cls[0])
                 conf = float(box.conf[0])
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
 
+                class_name = classes.get(cls_id, str(cls_id))
+
+                # Подсчитываем количество для каждого класса
+                class_counts[class_name] = class_counts.get(class_name, 0) + 1
+                total_count += 1
+
                 detections.append({
                     "class_id": cls_id,
-                    "class_name": classes.get(cls_id, str(cls_id)),
+                    "class_name": class_name,
                     "confidence": round(conf * 100, 2),
                     "bbox": [x1, y1, x2, y2]
                 })
@@ -111,12 +120,24 @@ async def predict(request: Request, file: UploadFile = File(...)):
         annotated_img = r.plot()
         Image.fromarray(annotated_img).save(result_path)
 
+        # Форматируем вывод для лучшего отображения
+        formatted_counts = {}
+        for class_name, count in class_counts.items():
+            # Создаем правильную форму слова для русского языка
+            if count % 10 == 1 and count % 100 != 11:
+                formatted_counts[class_name] = f"{count} обнаружен"
+            elif count % 10 in [2, 3, 4] and count % 100 not in [12, 13, 14]:
+                formatted_counts[class_name] = f"{count} обнаружено"
+            else:
+                formatted_counts[class_name] = f"{count} обнаружено"
+
         return templates.TemplateResponse("image_result.html", {
             "request": request,
             "image_url": f"/{result_path}",
-            "detections": detections,
+            "class_counts": formatted_counts,
             "filename": file.filename,
-            "count": len(detections)
+            "total_count": total_count,
+            "detections": detections  # Оставляем для возможного использования в будущем
         })
 
     except Exception as e:

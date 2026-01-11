@@ -15,16 +15,16 @@
 
 <div class="box">
     <p><b>Файл:</b> {{ filename }}</p>
-    <p><b>Найдено объектов:</b> {{ count }}</p>
+    <p><b>Всего объектов:</b> {{ total_count }}</p>
 </div>
 
 <img src="{{ image_url }}">
 
 <div class="box">
-    <h3>Детекции</h3>
+    <h3>Статистика обнаружений</h3>
     <ul>
-    {% for det in detections %}
-        <li>{{ det.class_name }} — {{ det.confidence }}%</li>
+    {% for class_name, count in class_counts.items() %}
+        <li>{{ class_name }} — {{ count }}</li>
     {% endfor %}
     </ul>
 </div>
