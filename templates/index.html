@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>YOLOv8 — Детекция дорожных знаков</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<h1>Детектирование и крассификация участников дорожного движения</h1>
+
+{% if model_loaded %}
+<div class="status ok">✅ Модель загружена</div>
+{% else %}
+<div class="status bad">❌ Модель не загружена</div>
+{% endif %}
+
+<div class="container">
+
+    <div class="card">
+        <h3>📷 Изображение</h3>
+        <form action="/predict_image" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept="image/*" required>
+            <br>
+            <button type="submit">Распознать</button>
+        </form>
+    </div>
+
+</div>
+
+<h3>📋 Доступные классы</h3>
+<ul>
+{% for key, value in classes.items() %}
+    <li>{{ key }} — {{ value }}</li>
+{% endfor %}
+</ul>
+
+</body>
+</html>

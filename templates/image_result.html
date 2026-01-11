@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Результат — изображение</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<h2>Результат обработки изображения</h2>
+
+{% if error %}
+<p style="color:red;">{{ error }}</p>
+{% else %}
+
+<div class="box">
+    <p><b>Файл:</b> {{ filename }}</p>
+    <p><b>Найдено объектов:</b> {{ count }}</p>
+</div>
+
+<img src="{{ image_url }}">
+
+<div class="box">
+    <h3>Детекции</h3>
+    <ul>
+    {% for det in detections %}
+        <li>{{ det.class_name }} — {{ det.confidence }}%</li>
+    {% endfor %}
+    </ul>
+</div>
+
+{% endif %}
+
+<a href="/">⬅ Вернуться на главную</a>
+
+</body>
+</html>
